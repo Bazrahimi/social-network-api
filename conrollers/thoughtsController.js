@@ -4,7 +4,7 @@ module.exports = {
   // GET all thoughts
   async getAllThoughts(req, res) {
     try {
-      const thoughts = await Thought.find().populate('reactions');
+      const thoughts = await Thought.find();
       res.json(thoughts);
     } catch (err) {
       res.status(500).json(err);
@@ -14,7 +14,7 @@ module.exports = {
   // GET a single thought by its _id
   async getThoughtById(req, res) {
     try {
-      const thought = await Thought.findById(req.params.thoughtId).populate('reactions');
+      const thought = await Thought.findById(req.params.thoughtId);
       if (!thought) {
         return res.status(404).json({ message: 'No thought found with that ID' });
       }
@@ -57,25 +57,34 @@ module.exports = {
   },
 
   // DELETE to remove a thought by its _id
-  async deleteThought(req, res) {
-    try {
-      const thought = await Thought.findById(req.params.thoughtId);
-      if (!thought) {
-        return res.status(404).json({ message: 'No thought found with that ID' });
-      }
+async deleteThought(req, res) {
+  try {
+    const thoughtId = req.params.thoughtId;
 
-      // Remove the thought from the user's `thoughts` array
-      await User.findByIdAndUpdate(
-        thought.username, // Assuming 'username' is the User's unique identifier. Otherwise, use the appropriate user identifier
-        { $pull: { thoughts: thought._id } },
-        { new: true }
-      );
-
-      // Delete the thought document
-      await thought.remove();
-      res.json({ message: 'Thought deleted successfully' });
-    } catch (err) {
-      res.status(500).json(err);
+    // Find the thought and make sure it exists
+    const thought = await Thought.findById(thoughtId);
+    if (!thought) {
+      return res.status(404).json({ message: 'No thought found with that ID' });
     }
-  },
+
+    await User.findOneAndUpdate(
+      { username: thought.username }, // Find the user by the unique username
+      { $pull: { thoughts: thoughtId } }, // 
+      { new: true }
+    );
+
+    // Now, delete the thought document
+    await Thought.findByIdAndDelete(thoughtId);
+    res.json({ message: 'Thought deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting thought:', err);
+    res.status(500).json(err);
+  }
+}
+
+
+
+
+
+
 };
