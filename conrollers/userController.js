@@ -1,11 +1,18 @@
-const { User, Thought } = require('../models');
+const { User, Thought, Reaction } = require('../models');
 
 
 module.exports = {
   async getUsers(req, res) {
     try {
       const users = await User.find()
-        .populate('thoughts')
+        .populate({
+          path: 'thoughts',
+          populate: ({
+            path: 'reactions',
+            model: Reaction,
+        
+          })
+        })
         .populate('friends');
       res.json(users);
     }catch (err) {
