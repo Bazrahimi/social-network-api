@@ -2,29 +2,36 @@ const { Schema, model } = require('mongoose');
 const moment = require('moment');
 
 const ThoughtSchema = new Schema({
-  thought: {
+  thoughtText: {
     type: String,
     required: true,
-    minlength: [1, 'Thought must be at least 1 character long.'],
-    maxlength: [280, 'Thought must be at most 280 characters.'],
+    minlength: 1,
+    maxlength: 280
   },
   createdAt: {
     type: Date,
-    default: Date.now, // Sets default value to the current timestamp
-    get: (createdAtVal) => moment(createdAtVal).format('MMM DD, YYYY [at] hh:mm a') // Formats the timestamp on query
+    default: Date.now,
+    get: createdAtVal => moment(createdAtVal).format('MMM DD, YYYY [at] hh:mm a')
   },
   username: {
     type: String,
-    required: true, 
+    required: true
   },
-  reactions: [ReactionSchema] // Array of nested documents created with the reactionSchema
-}, {
+  reactions: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'Reaction'
+    }
+  ]
+},
+{
   toJSON: {
+    virtuals: true,
     getters: true
-  }
+  },
+  id: false
 });
 
-
-const Thought = model('thought', ThoughtSchema);
+const Thought = model('Thought', ThoughtSchema);
 
 module.exports = Thought;
