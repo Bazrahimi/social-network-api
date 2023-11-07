@@ -1,9 +1,12 @@
-const User = require('../models/User');
+const { User, Thought } = require('../models');
+
 
 module.exports = {
   async getUsers(req, res) {
     try {
-      const users = await User.find();
+      const users = await User.find()
+        .populate('thoughts')
+        .populate('friends');
       res.json(users);
     }catch (err) {
       res.status(500).json(err);
@@ -56,4 +59,65 @@ module.exports = {
       }
     },
 
-}
+    // Delete a user by ID and their associated thoughts
+    async deleteUser(req, res) {
+      try {
+        const userId = req.params.userId;
+        const user = await User.findById(userId);
+    
+        if (!user) {
+          return res.status(404).json({ message: 'No user found with this ID to delete' });
+        }
+    
+        await Thought.deleteMany({ _id: { $in: user.thoughts } });
+    
+        // Now delete the user
+        await User.findByIdAndDelete(userId);
+    
+        res.json({ message: 'User and associated thoughts deleted' });
+      } catch (err) {
+        console.error('Error deleting user:', err); // Log the error for debugging
+        res.status(500).json(err);
+      }
+    },
+
+    async addFriend(req, res) {
+      try {
+        const user = await User.findByIdAndUpdate(
+          req.params.userId,
+          { $addToSet: { friends: req.params.friendId } }, // Use $addToSet to avoid duplicates
+          { new: true, runValidators: true }
+        );
+  
+        if (!user) {
+          return res.status(404).json({ message: 'No user found with this ID' });
+        }
+  
+        res.json(user);
+      } catch (err) {
+        res.status(500).json(err);
+      }
+    },
+  
+    // Remove a friend from a user's friend list
+    async removeFriend(req, res) {
+      try {
+        const user = await User.findByIdAndUpdate(
+          req.params.userId,
+          { $pull: { friends: req.params.friendId } }, // Use $pull to remove a friend
+          { new: true }
+        );
+  
+        if (!user) {
+          return res.status(404).json({ message: 'No user found with this ID' });
+        }
+  
+        res.json(user);
+      } catch (err) {
+        res.status(500).json(err);
+      }
+    },
+
+    
+};
+
